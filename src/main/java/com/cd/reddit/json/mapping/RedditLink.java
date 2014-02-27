@@ -50,6 +50,7 @@ public class RedditLink extends RedditType{
 	private String title;
 	private String url;
 	private String selftext;
+	private String thumbnail;
 
 	@JsonValue
 	public String getId() {
@@ -163,6 +164,12 @@ public class RedditLink extends RedditType{
 	public void setSelftext(String selftext) {
 		this.selftext = selftext;
 	}
+	public String getThumbnail() {
+		return thumbnail;
+	}
+	public void setThumbnail(String thumbnail) {
+		this.thumbnail = thumbnail;
+	}
 
 	@Override
 	public String toString() {
@@ -201,6 +208,8 @@ public class RedditLink extends RedditType{
 		builder.append(title);
 		builder.append(", url=");
 		builder.append(url);
+		builder.append(", thumbnail=");
+		builder.append(thumbnail);
 		builder.append("]");
 		return builder.toString();
 	}
