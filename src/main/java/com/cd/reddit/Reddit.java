@@ -163,8 +163,11 @@ public class Reddit {
 	public List<RedditLink> listingFor(final String subreddit, final String listingType) throws RedditException{
 		final List<String> pathSegments = new ArrayList<String>(3);
 
-		pathSegments.add(RedditApiResourceConstants.R);
-		pathSegments.add(subreddit);		
+		// if we want a actual subreddit (and not the front page)...
+		if (subreddit != null && !subreddit.equals("")) {
+			pathSegments.add(RedditApiResourceConstants.R);
+			pathSegments.add(subreddit);
+		}
 		pathSegments.add(listingType + RedditApiResourceConstants.DOT_JSON);
 		
 		final RedditRequestInput requestInput 
