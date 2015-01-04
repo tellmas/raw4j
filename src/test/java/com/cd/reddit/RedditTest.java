@@ -19,7 +19,9 @@ import static org.junit.Assert.assertNotNull;
 
 import java.util.List;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.codehaus.jackson.JsonNode;
+import org.testng.Reporter;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
@@ -46,11 +48,15 @@ import com.cd.reddit.json.util.RedditComments;
 public class RedditTest {
 
 	Reddit testReddit = null;
-	final String nl = System.getProperty("line.separator");
+	
+	//For TestNG report output.
+	final String nl = "<br>";
 	
 	//Throway account for proof-of-concept purposes
 	final String testUserAgent = "JavaJerseyTestBot/1.0 by Cory Dissinger";		
-
+	final String testUserName = "JavaJerseyTestBot";
+	final String testPassword = "JavaJerseyTestBot";
+	
 	//Dynamic values that change with each test
 	RedditSubreddit targetSubreddit = null;
 	RedditLink	   	targetLink	   	= null;
@@ -67,102 +73,90 @@ public class RedditTest {
 		try {
 			Thread.sleep(4000);
 		} catch (InterruptedException e) {
-			e.printStackTrace();
+			logRedditException(e);
 		}
 	}	
 
 	@Test
 	private void login(){
-        System.out.println(nl);    	
-        System.out.println("----------- TESTING LOGIN -----------");
-        System.out.println(nl);		
-		
 		RedditJsonMessage respMessage = null;
 		
 		try {
-			respMessage = testReddit.login("JavaJerseyTestBot", "JavaJerseyTestBot");
+			respMessage = testReddit.login(testUserName, testPassword);
 		} catch (RedditException e) {
-			e.printStackTrace();
-		} 
+			logRedditException(e);
+		}
 		
-		System.out.println(respMessage);
+		assertNotNull(respMessage);
+		
+		Reporter.log(respMessage.toString());
 	}
 
     @Test
     private void newCaptcha(){
-        System.out.println(nl);
-        System.out.println("----------- TESTING NEW CAPTCHA -----------");
-        System.out.println(nl);
-
         RedditJsonMessage respMessage = null;
 
         try {
             respMessage = testReddit.newCaptcha();
         } catch (RedditException e) {
-            e.printStackTrace();
+            logRedditException(e);
         }
+        
+        assertNotNull(respMessage);        
 
-        System.out.println(respMessage);
+        Reporter.log(respMessage.toString());
         assertEquals(true, respMessage.getIden() != null);
     }
 
 	@Test(dependsOnGroups = { "readReddit" },
 		  dependsOnMethods = { "login" } )	
 	public void testMeJson(){
-        System.out.println(nl);    	
-        System.out.println("----------- TESTING ME.JSON -----------");
-        System.out.println(nl);		
-		
 		RedditAccount account = null;
 		
 		try {
 			account = testReddit.meJson();
 		} catch (RedditException e) {
-			e.printStackTrace();
-		} 
+			logRedditException(e);
+		}
 		
-		System.out.println(account);
+		assertNotNull(account);		
+		
+		Reporter.log(account.toString());
 		assertEquals(true, account.getModhash() != null);		
 	}
 
     @Test(dependsOnGroups = { "readReddit" },
             dependsOnMethods = { "login" } )
     public void testUserInfoFor(){
-        System.out.println(nl);
-        System.out.println("----------- TESTING /api/{username}/about.json -----------");
-        System.out.println(nl);
-
         RedditAccount account = null;
 
         try {
             account = testReddit.userInfoFor("JavaJerseyTestBot");
         } catch (RedditException e) {
-            e.printStackTrace();
+            logRedditException(e);
         }
-
-        System.out.println(account);
+        
         assertNotNull(account);
+        
+        Reporter.log(account.toString());
     }
 
     // After logging in, we will 'read reddit' and not hard-code things to harass.
-
 	@Test(groups = { "readReddit" },
 		  dependsOnMethods = { "login" } )
 	public void subredditsPopular(){
-        System.out.println(nl);    	
-        System.out.println("----------- TESTING SUBREDDITS NEW -----------");
-        System.out.println(nl);		
-		
 		List<RedditSubreddit> subreddits = null;
 		
 		try {
 			subreddits = testReddit.subreddits("popular");
 		} catch (RedditException e) {
-			e.printStackTrace();
+			logRedditException(e);
 		}		
 
+		assertNotNull(subreddits);		
+		
 		for(RedditSubreddit subreddit : subreddits){
-			System.out.println(subreddit);
+			Reporter.log(subreddit.toString());
 		}
 		
 		assertEquals(false, subreddits.isEmpty());
@@ -173,21 +167,19 @@ public class RedditTest {
 	@Test(groups = { "readReddit" },
 		  dependsOnMethods = { "login", "subredditsPopular" } )
 	public void listingsFor(){
-        System.out.println(nl);    	
-        System.out.println("----------- TESTING LISTING FOR -----------");
-        System.out.println(nl);		
-		
 		List<RedditLink> listing = null;
-		String subredditString = targetSubreddit.getUrl().substring(3);
+		String subredditString = targetSubreddit.getSubredditName();
 		
 		try {
 			listing = testReddit.listingFor(subredditString, "top");
 		} catch (RedditException e) {
-			e.printStackTrace();
-		}		
+			logRedditException(e);
+		}
+		
+		assertNotNull(listing);
 
 		for(RedditLink link : listing){
-			System.out.println(link);
+			Reporter.log(link.toString());
 		}		
 		
 		assertEquals(false, listing.isEmpty());
@@ -196,65 +188,74 @@ public class RedditTest {
 	}	
 
 	@Test(groups = { "readReddit" },
-		  dependsOnMethods = { "login", "listingsFor" } )
-	public void commentsForAndMore(){
-        System.out.println(nl);    	
-        System.out.println("----------- TESTING COMMENTS FOR AND MORE -----------");
-        System.out.println(nl);		
-		
+		  dependsOnMethods = { "login" } )
+	public void commentsForWithoutMore(){
 		RedditComments comments = null;
-		String subredditString = targetSubreddit.getUrl().substring(3);
 		
 		try {
-			comments = testReddit.commentsFor(subredditString, targetLink.getId());
+			comments = testReddit.commentsFor("MotoG", "22mk0r");
 		} catch (RedditException e) {
-			e.printStackTrace();
-		}		
+			logRedditException(e);
+		}
+		
+		assertNotNull(comments);		
 
-		System.out.println(comments.toString());
+		Reporter.log(comments.toString());
 		
 		assertEquals(true, comments.getParentLink() != null);		
 		assertEquals(false, comments.getComments().isEmpty());
 		assertEquals(true, comments.getMore() != null);
-		
-		if(comments.getMore().getChildren().isEmpty())
-			return;
-		
-		List<RedditComment> moreComments = null;
-		
-		try {
-			moreComments = testReddit.moreChildrenFor(comments, "top");
-		} catch (RedditException e) {
-			e.printStackTrace();
-		}
-		
-		System.out.println(moreComments.toString());		
-
-		assertEquals(false, moreComments.isEmpty());		
-		
-		//Also test the 'more' and show an intuitive way of using..
-		//final String childComment = comments.get(1).getId();
 	}
+	
+	@Test(groups = { "readReddit" },
+			  dependsOnMethods = { "login" } )
+		public void commentsForWithMore(){
+			RedditComments comments = null;
+			
+			try {
+				comments = testReddit.commentsFor("magicTCG", "2kwlrm");
+			} catch (RedditException e) {
+				logRedditException(e);
+			}
+			
+			assertNotNull(comments);		
+
+			Reporter.log(comments.toString());
+			
+			assertEquals(true, comments.getParentLink() != null);		
+			assertEquals(false, comments.getComments().isEmpty());
+			
+			//This particular thread should have 6 comments, which can obviously change.
+			//As long as it remains less than 10 this object should be null for the parent 'Comment' thing
+			assertEquals(false, comments.getMore() == null);
+
+			List<RedditComment> moreComments = null;
+			
+			try {
+				moreComments = testReddit.moreChildrenFor(comments, "top");
+			} catch (RedditException e) {
+				logRedditException(e);
+			}
+			
+			assertNotNull(moreComments);
+			assertEquals(false, moreComments.isEmpty());
+		}	
 
     @Test(dependsOnGroups = { "readReddit" },
             dependsOnMethods = { "login", "listingsFor"} )
     public void vote() {
-        System.out.println(nl);
-        System.out.println("----------- TESTING VOTING AND UNVOTING -----------");
-        System.out.println(nl);
-
         String parentThing = targetLink.getName();
 
         try {
             testReddit.vote(1, parentThing);
         } catch (RedditException e) {
-            e.printStackTrace();
+            logRedditException(e);
         }
 
         try {
             testReddit.vote(0, parentThing);
         } catch (RedditException e) {
-            e.printStackTrace();
+            logRedditException(e);
         }
 
     }
@@ -262,10 +263,6 @@ public class RedditTest {
     @Test(dependsOnGroups = { "readReddit" },
 		  dependsOnMethods = { "login", "listingsFor"} )
 	public void commentAndDelete(){
-        System.out.println(nl);    	
-        System.out.println("----------- TESTING COMMENT AND DELETE -----------");
-        System.out.println(nl);		
-		
 		String testComment = "I hope you don't mind my TEST at all! Sorry Reddit, just integration testing... deletion will occur soon enough.";
 		String parentThing = targetLink.getName();
 		RedditJsonMessage message = null;
@@ -273,18 +270,19 @@ public class RedditTest {
 		try {
 			message = testReddit.comment(testComment, parentThing);
 		} catch (RedditException e) {
-			e.printStackTrace();
+			logRedditException(e);
 		}		
 
-		System.out.println(message.toString());
-        System.out.println(nl);
+		assertNotNull(message);		
+		
+		Reporter.log(message.toString());
         
 		assertEquals(true, message.getErrors().isEmpty());
 		
 		try {
 			Thread.sleep(4000);
 		} catch (InterruptedException e) {
-			e.printStackTrace();
+			logRedditException(e);
 		}		
 		
 		final JsonNode thingsNode = message.getData().get("things");
@@ -296,38 +294,33 @@ public class RedditTest {
 		try {
 			theOneComment = parser.parseCommentsOnly();
 		} catch (RedditException e) {
-			e.printStackTrace();
+			logRedditException(e);
 		}
         
         //The first and only Comment type Thing should be the one we just made.
         RedditComment theComment = theOneComment.get(0);
 
-        System.out.println(theComment);        
-        System.out.println(nl);        
+        Reporter.log(theComment.toString());        
         
 		try {
 			//It seems that the /api/delete method returns HTTP 200 ok and an empty JSON object response... don't try to parse it (yet)
 			testReddit.delete(theComment.getId());
 		} catch (RedditException e) {
-			e.printStackTrace();
+			logRedditException(e);
 		}
 		
 	}
 
     @Test( dependsOnMethods = "login" )
 	public void testMarkNSFW() {
-        System.out.println(nl);
-        System.out.println("----------- TESTING Mark Link NSFW -----------");
-        System.out.println(nl);
-
         String linkId = "t3_1roati"; //TEST POST BY JAVAJERSEYBOT
 
-
         int response = 0;
+        
         try {
             response = testReddit.markNSFW(linkId);
         } catch (RedditException e) {
-            e.printStackTrace();
+            logRedditException(e);
         }
 
         assertEquals(200, response); //Could use better assertion
@@ -335,17 +328,13 @@ public class RedditTest {
 
     @Test( dependsOnMethods = {"login", "testMarkNSFW"} )
     public void testUnmarkNSFW() {
-        System.out.println(nl);
-        System.out.println("----------- TESTING Unmark Link NSFW -----------");
-        System.out.println(nl);
-
         String linkId = "t3_1roati";
 
         int response = 0;
         try {
             response = testReddit.unmarkNSFW(linkId);
         } catch (RedditException e) {
-            e.printStackTrace();
+            logRedditException(e);
         }
 
         assertEquals(200, response); //Could use better assertion
@@ -353,20 +342,16 @@ public class RedditTest {
 	
 	//TODO: Reconcile this beast... the actual API call is more robust.
 	public void testInfoFor(){
-        System.out.println(nl);    	
-        System.out.println("----------- TESTING INFO FOR -----------");
-        System.out.println(nl);		
-		
 		List<RedditLink> listing = null;
 		
 		try {
 			listing = testReddit.infoForId("t3_1n6uck");
 		} catch (RedditException e) {
-			e.printStackTrace();
+			logRedditException(e);
 		}		
 
 		for(RedditLink link : listing){
-			System.out.println(link);
+			Reporter.log(link.toString());
 		}		
 		
 		assertEquals(false, listing.isEmpty());
@@ -375,21 +360,94 @@ public class RedditTest {
 	//TODO: Currently HTTP 302's?
 	//@Test(dependsOnMethods = { "login" } )
     public void testInbox() {
-        System.out.println(nl);    	
-        System.out.println("----------- TESTING INBOX -----------");
-        System.out.println(nl);
-        
         List<RedditMessage> messages = null;
+        
         try {
             messages = testReddit.messages(RedditApiResourceConstants.INBOX);
         } catch (RedditException e) {
-            e.printStackTrace();
+            logRedditException(e);
         }
         
         for (RedditMessage message : messages) {
-            System.out.println(message.toString());
+            Reporter.log(message.toString());
         }
         
         assertEquals(false, messages.isEmpty());
     }
+    
+    @Test(dependsOnMethods = { "login" } )
+  	public void testUserHistory(){
+  		List<RedditLink> listing = null;
+  		
+  		try {
+  			listing = testReddit.userHistory(testUserName, 
+  					RedditApiResourceConstants.SAVED);
+  		} catch (RedditException e) {
+  			logRedditException(e);
+  		}
+  		assertNotNull(listing);
+  		
+  		try {
+  			listing = testReddit.userHistory(testUserName, 
+  					RedditApiResourceConstants.OVERVIEW);
+  		} catch (RedditException e) {
+  			logRedditException(e);
+  		}
+  		assertNotNull(listing);
+  		
+  		try {
+  			listing = testReddit.userHistory(testUserName, 
+  					RedditApiResourceConstants.SUBMITTED);
+  		} catch (RedditException e) {
+  			logRedditException(e);
+  		}
+  		assertNotNull(listing);
+  		
+  		try {
+  			listing = testReddit.userHistory(testUserName, 
+  					RedditApiResourceConstants.COMMENTS);
+  		} catch (RedditException e) {
+  			logRedditException(e);
+  		}
+  		assertNotNull(listing);
+  		
+  		try {
+  			listing = testReddit.userHistory(testUserName, 
+  					RedditApiResourceConstants.LIKED);
+  		} catch (RedditException e) {
+  			logRedditException(e);
+  		}
+  		assertNotNull(listing);
+  		
+  		try {
+  			listing = testReddit.userHistory(testUserName, 
+  					RedditApiResourceConstants.DISLIKED);
+  		} catch (RedditException e) {
+  			logRedditException(e);
+  		}
+  		assertNotNull(listing);
+  		
+  		try {
+  			listing = testReddit.userHistory(testUserName, 
+  					RedditApiResourceConstants.HIDDEN);
+  		} catch (RedditException e) {
+  			logRedditException(e);
+  		}
+  		assertNotNull(listing);
+  		
+  	}
+    
+    private void logRedditException(final Exception e){
+    	final String [] stackMessages = ExceptionUtils.getRootCauseStackTrace(e);
+    	
+    	if(stackMessages.length == 0){
+    		return;
+    	}
+    	
+    	for(String message : stackMessages){
+    		Reporter.log(message);
+    	}
+    }
+    
+    
 }

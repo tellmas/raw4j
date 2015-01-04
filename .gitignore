@@ -1,8 +1,10 @@
 target/
-test-output/
+bin/
 .project
 .classpath
 .settings
 log.txt
 .idea/
 *.iml
+*.log
+test-output/
