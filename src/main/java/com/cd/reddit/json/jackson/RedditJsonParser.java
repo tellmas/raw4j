@@ -35,6 +35,8 @@ import com.cd.reddit.json.mapping.RedditMessage;
 import com.cd.reddit.json.mapping.RedditMore;
 import com.cd.reddit.json.mapping.RedditSubreddit;
 import com.cd.reddit.json.mapping.RedditType;
+import com.cd.reddit.json.mapping.RedditAfter;
+import com.cd.reddit.json.mapping.RedditBefore;
 import com.cd.reddit.json.util.RedditComments;
 import com.cd.reddit.json.util.RedditJsonConstants;
 
@@ -172,6 +174,32 @@ public class RedditJsonParser {
 	}
 
 	/**
+	 *
+	 * @return
+	 * @throws RedditException
+	 */
+	@SuppressWarnings("unchecked")
+	public String parseAfterValue() throws RedditException{
+		init();
+
+		List<RedditAfter> after = (List<RedditAfter>) parseSpecificType(rootNode, RedditJsonConstants.AFTER);
+		return after.get(0).getAfter();
+	}
+
+	/**
+	 *
+	 * @return
+	 * @throws RedditException
+	 */
+	@SuppressWarnings("unchecked")
+	public String parseBeforeValue() throws RedditException{
+		init();
+
+		List<RedditBefore> before = (List<RedditBefore>) parseSpecificType(rootNode, RedditJsonConstants.BEFORE);
+		return before.get(0).getBefore();
+	}
+
+	/**
 	 * Parses all Account type Things from a given JSON object.
 	 * 
 	 * <br/>
@@ -297,7 +325,7 @@ public class RedditJsonParser {
 	private List<RedditType> parseRedditTypes(JsonNode aNode, String specifiedType) throws RedditException{
 		final JsonNode kindNode = aNode.get(RedditJsonConstants.KIND);
 		final String theKind;
-		
+
 		if(kindNode == null){
 			throw new RedditException("No kind found for node: " + aNode.toString());
 		}else{
@@ -305,8 +333,25 @@ public class RedditJsonParser {
 		}
 		
 		if(RedditJsonConstants.LISTING.equals(theKind)){
-			final JsonNode childData = aNode.get(RedditJsonConstants.DATA).get(RedditJsonConstants.CHILDREN);
-			return mapJsonArrayToList(childData, specifiedType); 
+
+			if (specifiedType.equals(RedditJsonConstants.AFTER)) {
+				final JsonNode node = aNode.get(RedditJsonConstants.DATA).get(RedditJsonConstants.AFTER);
+				final List<RedditType> after = new ArrayList<RedditType>(1);
+				final RedditAfter a = new RedditAfter();
+				a.setAfter(node.asText());
+				after.add(a);
+				return after;
+			} else if (specifiedType.equals(RedditJsonConstants.BEFORE)) {
+				final JsonNode node = aNode.get(RedditJsonConstants.DATA).get(RedditJsonConstants.BEFORE);
+				final List<RedditType> before = new ArrayList<RedditType>(1);
+				final RedditBefore b = new RedditBefore();
+				b.setBefore(node.asText());
+				before.add(b);
+				return before;
+			} else {
+				final JsonNode childData = aNode.get(RedditJsonConstants.DATA).get(RedditJsonConstants.CHILDREN);
+				return mapJsonArrayToList(childData, specifiedType);
+			}
 		}else{
 			final JsonNode childData = aNode.get(RedditJsonConstants.DATA);
 			final List<RedditType> singleType = new ArrayList<RedditType>(1);

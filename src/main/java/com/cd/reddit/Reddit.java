@@ -21,6 +21,7 @@ import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.cd.reddit.http.QueryBuilder;
 import com.cd.reddit.http.RedditRequestor;
 import com.cd.reddit.http.util.RedditApiParameterConstants;
 import com.cd.reddit.http.util.RedditApiResourceConstants;
@@ -53,6 +54,14 @@ import com.cd.reddit.json.util.RedditComments;
  */
 public class Reddit {
 	private final RedditRequestor requestor;
+
+	private static final String QUERY_PARAM_BEFORE_KEY = "before";
+	private static final String QUERY_PARAM_AFTER_KEY = "after";
+	private static final String QUERY_PARAM_LIMIT_KEY = "limit";
+	private static final int QUERY_PARAM_LIMIT_VALUE_MAX = 100;
+	private static final String QUERY_PARAM_COUNT_KEY = "count";
+	private static final String QUERY_PARAM_SHOW_KEY = "show";
+
 	
 	/**
 	 * @param userAgent The user agent to set
@@ -177,6 +186,64 @@ public class Reddit {
 		
 		final RedditJsonParser parser = new RedditJsonParser(response.getBody());
 		
+		return parser.parseLinks();
+	}
+
+	/**
+	 *
+	 */
+	public List<RedditLink> listingFor(
+			final String subreddit,
+			final String listingType,
+			final String before,
+			final String after,
+			final int limit,
+			final int count,
+			final String show,
+			StringBuilder returnValueForBefore,
+			StringBuilder returnValueForAfter) throws RedditException{
+
+		final List<String> pathSegments = new ArrayList<String>(3);
+
+		// if we want a actual subreddit (and not the front page)...
+		if (subreddit != null && !subreddit.equals("")) {
+			pathSegments.add(RedditApiResourceConstants.R);
+			pathSegments.add(subreddit);
+		}
+		pathSegments.add(listingType + RedditApiResourceConstants.DOT_JSON);
+
+		Map<String,String> queryParams = new HashMap<String,String>();
+		if (before != null && before.length() > 0) {
+			queryParams.put(QUERY_PARAM_BEFORE_KEY, before);
+		}
+		if (after != null && after.length() > 0) {
+			queryParams.put(QUERY_PARAM_AFTER_KEY, after);
+		}
+		if (show != null && show.length() > 0) {
+			queryParams.put(QUERY_PARAM_SHOW_KEY, show);
+		}
+		if (limit >= 1 && limit <= QUERY_PARAM_LIMIT_VALUE_MAX) {
+			queryParams.put(QUERY_PARAM_LIMIT_KEY, Integer.valueOf(limit).toString());
+		}
+		if (count > 0) {
+			queryParams.put(QUERY_PARAM_COUNT_KEY, Integer.valueOf(count).toString());
+		}
+
+
+		final RedditRequestInput requestInput;
+		if (queryParams.size() > 0) {
+			requestInput = new RedditRequestInput(pathSegments, queryParams);
+		} else {
+			requestInput = new RedditRequestInput(pathSegments);
+		}
+
+		final RedditRequestResponse response = requestor.executeGet(requestInput);
+
+		final RedditJsonParser parser = new RedditJsonParser(response.getBody());
+
+		returnValueForAfter.append(parser.parseAfterValue());
+		returnValueForBefore.append(parser.parseBeforeValue());
+
 		return parser.parseLinks();
 	}
 

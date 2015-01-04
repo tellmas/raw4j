@@ -41,7 +41,7 @@ public class RedditLink extends RedditType{
 	//Link
 	private String author;
 	private String domain;
-	private int numComments;
+	private int num_comments;
 	private boolean over18;
 	private boolean is_self;
 	private String permalink;
@@ -110,11 +110,11 @@ public class RedditLink extends RedditType{
 	public void setDomain(String domain) {
 		this.domain = domain;
 	}
-	public int getNumComments() {
-		return numComments;
+	public int getNum_comments() {
+		return num_comments;
 	}
-	public void setNumComments(int numComments) {
-		this.numComments = numComments;
+	public void setNum_comments(int num_comments) {
+		this.num_comments = num_comments;
 	}
 	public boolean isOver18() {
 		return over18;
@@ -192,8 +192,8 @@ public class RedditLink extends RedditType{
 		builder.append(author);
 		builder.append(", domain=");
 		builder.append(domain);
-		builder.append(", numComments=");
-		builder.append(numComments);
+		builder.append(", num_comments=");
+		builder.append(num_comments);
 		builder.append(", over18=");
 		builder.append(over18);
 		builder.append(", is_self=");
