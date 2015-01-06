@@ -273,7 +273,7 @@ public class Reddit {
 	}	
 
 	public RedditComments commentsFor(final String subreddit, final String linkId) throws RedditException{
-		return commentsFor(subreddit, linkId, 10);
+		return commentsFor(subreddit, linkId, -1);
 	}	
 	
 	public RedditComments commentsFor(final String subreddit, final String linkId, final int limit) throws RedditException{
@@ -285,7 +285,9 @@ public class Reddit {
 		pathSegments.add(RedditApiResourceConstants.COMMENTS);
 		pathSegments.add(linkId + RedditApiResourceConstants.DOT_JSON);		
 		
-		queryParams.put(RedditApiParameterConstants.LIMIT, Integer.toString(limit));
+		if (limit > -1) {
+			queryParams.put(RedditApiParameterConstants.LIMIT, Integer.toString(limit));
+		}
 		
 		final RedditRequestInput requestInput 
 			= new RedditRequestInput(pathSegments, queryParams);
